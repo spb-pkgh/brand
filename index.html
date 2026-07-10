@@ -4596,6 +4596,7 @@ a.sf-tooltip:hover span {
 			background-size: ;
 			font-size: 14px;
 					">
+</body>
 		
 				
 		<section class="sf-service-top-area d-print-none">
@@ -4605,9 +4606,8 @@ a.sf-tooltip:hover span {
 					sf-pagewrap-area 
 					overflow-hidden d-flex flex-col justify-content-start				" style="background-color: #F3F1F0">
 		
-							
-<? require($_SERVER["DOCUMENT_ROOT"]."/grid/header.php"); ?>
-				
+<div id="content-header-js" width="100%"></div>
+								
 				<div class="h-100  flex-grow-1 d-flex flex-column ">
 												
 					<section class="
@@ -10039,7 +10039,8 @@ $(".modal-window-home").click(function(){
 		}).children().click(function(e) {
 		  e.stopPropagation();
 		});
-</script><script type="text/javascript">
+</script>
+<script type="text/javascript">
 (function() {
     let isMutating = false; // Предотвращает бесконечную рекурсию MutationObserver
 
@@ -10255,6 +10256,13 @@ $(".modal-window-home").click(function(){
     const obs = new MutationObserver(moveFooterElements);
     obs.observe(document.body, { childList: true, subtree: true });
 })();
+</script>
+                    <script>
+fetch('./grid/header.html')
+  .then(response => response.text())
+  .then(data => {
+    document.getElementById('content-header-js').innerHTML = data;
+  });
 </script>
 
    
