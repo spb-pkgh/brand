@@ -1000,4 +1000,456 @@
 </div>
 
 				</header>
-				
+				<script type="text/javascript">
+// Прелоадер скрипт
+(function() {
+    var preloader = document.getElementById('page-preloader');
+    var fill = document.getElementById('loader-fill');
+    var perc = document.getElementById('loader-perc');
+    var logo = preloader.querySelector('.loader-logo');
+
+    var resetLogoAnimation = function(start) {
+        if (!logo) return;
+        if (start) {
+            logo.classList.add('start-animation');
+        } else {
+            logo.classList.remove('start-animation');
+        }
+    };
+
+    // Скрытие прелоадера
+    var hidePreloader = function() {
+        if (!preloader.classList.contains('done')) {
+            if (fill) fill.style.width = '100%';
+            if (perc) perc.textContent = '100%';
+
+            setTimeout(function() {
+                preloader.classList.add('done');
+                preloader.classList.remove('preloader-fading-in');
+                
+                setTimeout(function() {
+                    resetLogoAnimation(false);
+                    preloader.style.display = 'none';
+                }, 500);
+            }, 300);
+        }
+    };
+
+    // Показ прелоадера
+    var startTransition = function(url) {
+        if (fill) fill.style.width = '0%';
+        if (perc) perc.textContent = '0%';
+        
+        preloader.style.display = 'flex';
+        
+        setTimeout(function() {
+            preloader.classList.remove('done');
+            preloader.classList.add('preloader-fading-in');
+        }, 10);
+        
+        setTimeout(function() {
+            window.location.href = url;
+        }, 550);
+    };
+
+    // Запуск при загрузке НОВОЙ страницы
+    resetLogoAnimation(true);
+
+    // Логика реального прогресса
+    var resources = document.querySelectorAll('img, script, link[rel="stylesheet"]');
+    var total = resources.length;
+    var loaded = 0;
+    function updateProgress() {
+        loaded++;
+        var progress = Math.round((loaded / total) * 100);
+        if (progress > 100) progress = 100;
+        if (fill) fill.style.width = progress + '%';
+        if (perc) perc.textContent = progress + '%';
+    }
+    resources.forEach(function(res) {
+        if (res.complete) updateProgress();
+        else { res.addEventListener('load', updateProgress); res.addEventListener('error', updateProgress); }
+    });
+
+    window.addEventListener('load', hidePreloader);
+
+    document.addEventListener('click', function(e) {
+        var anchor = e.target.closest('a');
+        if (anchor && anchor.href && anchor.host === window.location.host && 
+            !anchor.getAttribute('target') && !anchor.href.includes('#') &&
+            !anchor.href.startsWith('tel:') && !anchor.href.startsWith('mailto:') &&
+            !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            startTransition(anchor.href);
+        }
+    });
+
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) hidePreloader();
+    });
+
+    setTimeout(hidePreloader, 12000);
+})();
+
+(function() {
+    // Построение вкладок для мега-меню
+    function initMegaMenuTabs() {
+        const menuContainer = document.querySelector('.sf-nav-full-screen');
+        if (!menuContainer) return;
+
+        const contentContainer = menuContainer.querySelector('.sf-nav-full-screen-content');
+        if (!contentContainer) return;
+
+        if (menuContainer.querySelector('.mega-menu-tabs')) return;
+
+        const tabsContainer = document.createElement('div');
+        tabsContainer.className = 'mega-menu-tabs';
+
+        const lists = menuContainer.querySelectorAll('.sf-nav-full-screen-list');
+        lists.forEach((list, index) => {
+            const headerLink = list.querySelector('.sf-nav-full-screen-list-header a');
+            if (!headerLink) return;
+
+            const tabTitle = headerLink.textContent.trim();
+            const tab = document.createElement('button');
+            tab.className = 'mega-menu-tab';
+            tab.textContent = tabTitle;
+            tab.dataset.targetIndex = index;
+
+            if (headerLink.classList.contains('active') || list.querySelector('.active') || headerLink.classList.contains('blackout')) {
+                tab.classList.add('is-active');
+                list.classList.add('is-active-list');
+            }
+
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                tabsContainer.querySelectorAll('.mega-menu-tab').forEach(t => t.classList.remove('is-active'));
+                lists.forEach(l => l.classList.remove('is-active-list'));
+
+                tab.classList.add('is-active');
+                list.classList.add('is-active-list');
+
+                updateScrollArrows();
+            });
+
+            tabsContainer.appendChild(tab);
+        });
+
+        const activeTab = tabsContainer.querySelector('.mega-menu-tab.is-active');
+        if (!activeTab && tabsContainer.children.length > 0) {
+            const firstTab = tabsContainer.children[0];
+            firstTab.classList.add('is-active');
+            lists[0].classList.add('is-active-list');
+        }
+
+        const tabsWrapper = document.createElement('div');
+        tabsWrapper.className = 'mega-menu-tabs-wrapper';
+        tabsWrapper.appendChild(tabsContainer);
+
+        // Создаем реальные кликабельные кнопки-стрелочки для ПК и мобильных версий
+        const leftArrow = document.createElement('button');
+        leftArrow.className = 'mega-menu-scroll-arrow left-arrow';
+        leftArrow.innerHTML = '←';
+        leftArrow.setAttribute('type', 'button');
+
+        const rightArrow = document.createElement('button');
+        rightArrow.className = 'mega-menu-scroll-arrow right-arrow';
+        rightArrow.innerHTML = '→';
+        rightArrow.setAttribute('type', 'button');
+
+        leftArrow.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            tabsContainer.scrollBy({ left: -200, behavior: 'smooth' });
+        });
+
+        rightArrow.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            tabsContainer.scrollBy({ left: 200, behavior: 'smooth' });
+        });
+
+        tabsWrapper.appendChild(leftArrow);
+        tabsWrapper.appendChild(rightArrow);
+
+        contentContainer.insertBefore(tabsWrapper, contentContainer.firstChild);
+
+        function updateScrollArrows() {
+            // Если вкладки не влезают по ширине, сбрасываем выравнивание по центру, чтобы избежать обрезки слева на малых масштабах ПК
+            const isScrollable = tabsContainer.scrollWidth > tabsContainer.clientWidth;
+            if (isScrollable) {
+                tabsContainer.classList.add('is-scrollable');
+            } else {
+                tabsContainer.classList.remove('is-scrollable');
+            }
+
+            if (tabsContainer.scrollLeft > 5) {
+                tabsWrapper.classList.add('has-left-scroll');
+            } else {
+                tabsWrapper.classList.remove('has-left-scroll');
+            }
+
+            const canScrollRight = (tabsContainer.scrollWidth - tabsContainer.clientWidth - tabsContainer.scrollLeft) > 5;
+            if (canScrollRight) {
+                tabsWrapper.classList.add('has-right-scroll');
+            } else {
+                tabsWrapper.classList.remove('has-right-scroll');
+            }
+        }
+
+        tabsContainer.addEventListener('scroll', updateScrollArrows);
+        window.addEventListener('resize', updateScrollArrows);
+        setTimeout(updateScrollArrows, 150);
+    }
+
+    // Рендер элементов мобильного поиска и мобильного оверлея
+    function renderMobileSearchElements() {
+        const burger = document.querySelector('.btn-full-screen');
+        if (burger) {
+            const burgerContainer = burger.parentElement;
+            if (burgerContainer && !document.getElementById('mobile-search-btn')) {
+                const mobileSearchBtn = document.createElement('button');
+                mobileSearchBtn.id = 'mobile-search-btn';
+                mobileSearchBtn.className = 'mobile-search-btn-custom';
+                mobileSearchBtn.setAttribute('type', 'button');
+                mobileSearchBtn.innerHTML = `
+                    <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="9.58366" cy="9.58332" r="7.91667" stroke="#65717F" stroke-width="1.5"/>
+                        <path d="M15.417 15.4167L18.3337 18.3333" stroke="#65717F" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                `;
+                burgerContainer.insertBefore(mobileSearchBtn, burger);
+            }
+        }
+
+        if (!document.getElementById('mobile-search-overlay-custom')) {
+            const overlay = document.createElement('div');
+            overlay.id = 'mobile-search-overlay-custom';
+            overlay.className = 'mobile-search-overlay';
+            overlay.innerHTML = `
+                <div class="mobile-search-box-container">
+                    <div class="mobile-search-header">
+                        <span class="mobile-search-title">Введите поисковой запрос</span>
+                        <button type="button" class="mobile-search-close-btn">&times;</button>
+                    </div>
+                    <form action="/search/" method="get" class="mobile-search-form">
+                        <input type="text" name="q" placeholder="Поиск по сайту..." class="mobile-search-input-field" autocomplete="off" required>
+                        <button type="submit" class="mobile-search-submit-btn">Искать</button>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('#mobile-search-btn')) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    e.stopPropagation();
+                    overlay.classList.add('active');
+                    setTimeout(() => {
+                        overlay.querySelector('.mobile-search-input-field').focus();
+                    }, 150);
+                }
+                if (e.target.closest('.mobile-search-close-btn') || (e.target === overlay)) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    e.stopPropagation();
+                    overlay.classList.remove('active');
+                }
+            });
+        }
+    }
+
+    let menuWatchInitialized = false;
+    let styleObserver; // Глобальный наблюдатель изменений стилей html и body
+
+    // Функция очистки инлайнового overflow: hidden у тегов html и body
+    function cleanOverflowStyles() {
+        if (!styleObserver) return;
+        
+        styleObserver.disconnect(); // Временно отключаем слежение
+
+        const html = document.documentElement;
+        const body = document.body;
+
+        if (html.style.overflow === 'hidden' || html.style.overflowY === 'hidden') {
+            html.style.removeProperty('overflow');
+            html.style.removeProperty('overflow-y');
+        }
+        if (body.style.overflow === 'hidden' || body.style.overflowY === 'hidden') {
+            body.style.removeProperty('overflow');
+            body.style.removeProperty('overflow-y');
+        }
+
+        // Переподключаем слежение
+        styleObserver.observe(html, { attributes: true, attributeFilter: ['style'] });
+        styleObserver.observe(body, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    // Вспомогательные функции переключения классов хедера и бургера
+    function openMenu() {
+        const menu = document.querySelector('.sf-nav-full-screen');
+        const header = document.querySelector('.modern-header-flat');
+        const burgers = document.querySelectorAll('.btn-full-screen');
+        if (!menu || !header) return;
+
+        menu.classList.add('is-open'); 
+        header.classList.add('menu-open');
+        burgers.forEach(b => b.classList.add('is-active'));
+        
+        cleanOverflowStyles();
+    }
+
+    function closeMenu() {
+        const menu = document.querySelector('.sf-nav-full-screen');
+        const header = document.querySelector('.modern-header-flat');
+        const burgers = document.querySelectorAll('.btn-full-screen');
+        if (!menu || !header) return;
+
+        menu.classList.remove('is-open'); 
+        header.classList.remove('menu-open');
+        burgers.forEach(b => b.classList.remove('is-active'));
+        
+        cleanOverflowStyles();
+    }
+
+    // Блокируем прокрутку фона (body), но разрешаем прокрутку внутри самого мега-меню
+    function preventBackgroundScroll(e) {
+        const menu = document.querySelector('.sf-nav-full-screen');
+        if (menu && menu.classList.contains('is-open')) {
+            // Если событие прокрутки происходит внутри мега-меню, разрешаем его
+            if (e.target.closest('.sf-nav-full-screen')) {
+                return;
+            }
+            // В противном случае блокируем прокрутку страницы
+            e.preventDefault();
+        }
+    }
+
+    // Блокируем прокрутку фона на ПК и мобильных, НЕ скрывая сам скроллбар (исключает "прыжки" контента)
+    document.addEventListener('wheel', preventBackgroundScroll, { passive: false });
+    document.addEventListener('touchmove', preventBackgroundScroll, { passive: false });
+
+    // Следим за открытием и закрытием мега-меню (всех страниц)
+    function watchAllPagesMenu() {
+        const menu = document.querySelector('.sf-nav-full-screen');
+        const header = document.querySelector('.modern-header-flat');
+        const burgers = document.querySelectorAll('.btn-full-screen');
+        if (!menu || !header || burgers.length === 0) return;
+
+        menu.style.display = 'block';
+        menu.style.borderRadius = '0px';
+
+        // Инициализируем открытие только ОДИН раз при первом появлении конкретного DOM-узла.
+        // Это предотвращает повторный вызов MutationObserver при попытке закрыть меню.
+        if (!menu.hasAttribute('data-first-load-processed')) {
+            menu.setAttribute('data-first-load-processed', 'true');
+            if (!menu.classList.contains('is-open')) {
+                openMenu();
+            }
+        }
+    }
+
+    // ЕДИНЫЙ ОБРАБОТЧИК ДЛЯ КЛИКОВ И КАСАНИЙ С ЗАЩИТОЙ ОТ ДВОЙНОГО СРАБАТЫВАНИЯ (ДЕБАУНСЕР)
+    function handleBurgerToggle(e) {
+        const burger = e.target.closest('.btn-full-screen');
+        if (burger) {
+            const currentMenu = document.querySelector('.sf-nav-full-screen');
+            const now = Date.now();
+            
+            // Если меню еще нет в DOM (первый клик/касание) — позволяем Simai нативно
+            // внедрить его в структуру страницы. Не вызываем preventDefault!
+            if (!currentMenu) {
+                // Помечаем, что этот жест/касание инициализирует меню
+                burger.setAttribute('data-initializing-menu', now);
+                return;
+            }
+
+            // Если меню только что инициализировалось в этой же сессии (в пределах 500 мс),
+            // мы не должны закрывать его в последующих событиях жеста (touchend, click)
+            const initializingTime = burger.getAttribute('data-initializing-menu');
+            if (initializingTime && (now - parseInt(initializingTime) < 500)) {
+                if (e.type === 'click') {
+                    burger.removeAttribute('data-initializing-menu');
+                }
+                return; // Игнорируем это событие, давая меню открыться и остаться открытым
+            }
+
+            // Перехватываем управление у нативных обработчиков для последующих открытий/закрытий
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+
+            // Временная метка последнего сенсорного взаимодействия для блокировки кликов
+            if (e.type === 'touchstart' || e.type === 'touchend') {
+                burger.setAttribute('data-last-touch', now);
+            } else if (e.type === 'click') {
+                const lastTouch = burger.getAttribute('data-last-touch');
+                if (lastTouch && (now - parseInt(lastTouch) < 500)) {
+                    return; // Игнорируем симулированный браузером клик на телефоне
+                }
+            }
+
+            // Исключаем дребезг между touchstart и touchend в рамках одного касания
+            const lastProcessed = burger.getAttribute('data-last-processed');
+            if (lastProcessed && (now - parseInt(lastProcessed) < 250)) {
+                return; 
+            }
+            burger.setAttribute('data-last-processed', now);
+
+            if (currentMenu.classList.contains('is-open')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        }
+    }
+
+    // Регистрируем перехватчики в фазе захвата (true) на все типы взаимодействия
+    document.addEventListener('click', handleBurgerToggle, true);
+    document.addEventListener('touchstart', handleBurgerToggle, { capture: true, passive: false });
+    document.addEventListener('touchend', handleBurgerToggle, { capture: true, passive: false });
+
+    // Перехватчик кнопки закрытия
+    document.addEventListener('click', function(e) {
+        const closeBtn = e.target.closest('.sf-close');
+        if (closeBtn) {
+            const currentMenu = document.querySelector('.sf-nav-full-screen');
+            if (currentMenu) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                e.stopPropagation();
+                closeMenu();
+            }
+        }
+    }, true);
+
+    function runInit() {
+        renderMobileSearchElements();
+        initMegaMenuTabs();
+        watchAllPagesMenu();
+
+        // Защищаем элементы от сброса через Composite / Lazy Load Битрикса
+        const observer = new MutationObserver(function() {
+            renderMobileSearchElements();
+            initMegaMenuTabs();
+            watchAllPagesMenu();
+            cleanOverflowStyles();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Создаем и подключаем наблюдатель изменений атрибутов style у html и body
+        styleObserver = new MutationObserver(cleanOverflowStyles);
+        styleObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+        styleObserver.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runInit);
+    } else {
+        runInit();
+    }
+})();
+</script>
